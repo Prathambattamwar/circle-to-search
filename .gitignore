@@ -1,0 +1,7 @@
+STREAMING_CHUNK:Configuring Git to protect the key...
+
+Ignore the local environment file to prevent the API key from leaking to GitHub
+
+env.js
+.env
+.DS_Store
