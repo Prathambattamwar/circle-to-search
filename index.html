@@ -60,6 +60,14 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
+        
+        <!-- API Key Input Section (New) -->
+        <div class="p-4 border-b border-gray-700 bg-gray-800/80">
+            <label class="text-xs text-gray-400 mb-1 block">Gemini API Key (Required for GitHub)</label>
+            <input type="password" id="api-key-input" placeholder="Paste API Key (AIza...)" class="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition">
+            <p class="text-[10px] text-gray-500 mt-1">Key is saved securely in your browser's local storage.</p>
+        </div>
+
         <div id="search-results" class="p-6 overflow-y-auto flex-1 prose prose-invert max-w-none">
             <!-- AI Results will be injected here as Markdown -->
         </div>
@@ -72,6 +80,18 @@
         const overlayCtx = overlayCanvas.getContext('2d');
         const searchPanel = document.getElementById('search-panel');
         const searchResults = document.getElementById('search-results');
+        const apiKeyInput = document.getElementById('api-key-input');
+
+        // Load saved API key on startup
+        const savedKey = localStorage.getItem('gemini_api_key');
+        if (savedKey) {
+            apiKeyInput.value = savedKey;
+        }
+
+        // Save API key when user types it
+        apiKeyInput.addEventListener('change', (e) => {
+            localStorage.setItem('gemini_api_key', e.target.value.trim());
+        });
 
         // Application State
         let isDrawing = false;
@@ -350,6 +370,17 @@
             isLoadingData = true;
             animateLoading(minX, minY, width, height);
             
+            // Check if API key exists
+            const userApiKey = localStorage.getItem('gemini_api_key') || apiKeyInput.value.trim();
+            
+            if (!userApiKey) {
+                isLoadingData = false;
+                cancelAnimationFrame(animationFrameId);
+                overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                openSearchPanel(`### 🔑 API Key Required\n\nBecause this app is deployed on GitHub, you need to provide your own Gemini API key.\n\n1. Get a free key from [Google AI Studio](https://aistudio.google.com/)\n2. Paste it into the input box at the top of this panel.\n3. Try circling your drawing again!`);
+                return;
+            }
+
             // Pre-fill panel with loading text
             openSearchPanel(`
 <div class="flex flex-col items-center justify-center py-10 space-y-4">
@@ -363,12 +394,8 @@
 
             try {
                 // Get base64 string without the prefix
-                const base64Image = tempCanvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+                const base64Image = tempCanvas.toDataURL('image/png').split(',')[1];
                 
-                // IMPORTANT: Leave apiKey blank to use the environment's built-in key
-                const apiKey = ""; 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-
                 const prompt = `You are an expert educational tutor helping a student. Look at this whiteboard snippet and identify the core subject (a math equation, a scientific concept like a tree or cell, a historical term, etc.). 
                 CRITICAL: Do NOT analyze the artistic style, line thickness, or how it was drawn. 
                 - If it's a math problem, provide a clear step-by-step solution.
@@ -377,19 +404,23 @@
                 Keep the tone encouraging, concise, and perfectly tailored for a student's notes. Use Markdown formatting.`;
 
                 const payload = {
-                    contents: [{
-                        role: "user",
-                        parts: [
-                            { text: prompt },
-                            {
-                                inlineData: {
-                                    mimeType: "image/jpeg",
-                                    data: base64Image
+                    contents: [
+                        {
+                            role: "user",
+                            parts: [
+                                { text: prompt },
+                                {
+                                    inlineData: {
+                                        mimeType: "image/png",
+                                        data: base64Image
+                                    }
                                 }
-                            }
-                        ]
-                    }]
+                            ]
+                        }
+                    ],
                 };
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${userApiKey}`;
 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
