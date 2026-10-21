@@ -60,13 +60,6 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-        
-        <!-- API Key Input Section (New) -->
-        <div class="p-4 border-b border-gray-700 bg-gray-800/80">
-            <label class="text-xs text-gray-400 mb-1 block">Gemini API Key (Required for GitHub)</label>
-            <input type="password" id="api-key-input" placeholder="Paste API Key (AIza...)" class="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition">
-            <p class="text-[10px] text-gray-500 mt-1">Key is saved securely in your browser's local storage.</p>
-        </div>
 
         <div id="search-results" class="p-6 overflow-y-auto flex-1 prose prose-invert max-w-none">
             <!-- AI Results will be injected here as Markdown -->
@@ -80,20 +73,7 @@
         const overlayCtx = overlayCanvas.getContext('2d');
         const searchPanel = document.getElementById('search-panel');
         const searchResults = document.getElementById('search-results');
-        const apiKeyInput = document.getElementById('api-key-input');
 
-        // Load saved API key on startup
-        const savedKey = localStorage.getItem('gemini_api_key');
-        if (savedKey) {
-            apiKeyInput.value = savedKey;
-        }
-
-        // Save API key when user types it
-        apiKeyInput.addEventListener('change', (e) => {
-            localStorage.setItem('gemini_api_key', e.target.value.trim());
-        });
-
-        // Application State
         let isDrawing = false;
         let currentTool = 'pen'; // 'pen', 'eraser', 'lasso'
         let lastX = 0;
@@ -102,7 +82,6 @@
         let isLoadingData = false;
         let animationFrameId = null;
 
-        // Ensure canvas fills the screen
         function resizeCanvas() {
             const w = window.innerWidth;
             const h = window.innerHeight;
@@ -119,17 +98,14 @@
                 tempCtx.drawImage(canvas, 0, 0);
             }
 
-            // Resize
             canvas.width = w;
             canvas.height = h;
             overlayCanvas.width = w;
             overlayCanvas.height = h;
 
-            // Initialize or redraw background
             ctx.fillStyle = '#111827'; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Restore drawing over the new background
             if (tempCanvas) {
                 ctx.drawImage(tempCanvas, 0, 0);
             }
@@ -138,7 +114,6 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Utility to get touch/mouse coordinates
         function getPos(e) {
             const rect = canvas.getBoundingClientRect();
             if (e.touches && e.touches.length > 0) {
@@ -161,7 +136,6 @@
             
             if (currentTool === 'lasso') {
                 lassoPoints = [{x: lastX, y: lastY}];
-                // Clear any previous overlay animations
                 cancelAnimationFrame(animationFrameId);
                 overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
                 closeSearchPanel();
@@ -188,7 +162,6 @@
             } else if (currentTool === 'lasso') {
                 lassoPoints.push({x: pos.x, y: pos.y});
                 
-                // Redraw smooth, continuous neon glow effect
                 overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
                 
                 overlayCtx.beginPath();
@@ -200,21 +173,18 @@
                 overlayCtx.lineCap = 'round';
                 overlayCtx.lineJoin = 'round';
 
-                // Layer 1: Wide Fuchsia Aura
                 overlayCtx.lineWidth = 24;
                 overlayCtx.strokeStyle = 'rgba(232, 121, 249, 0.25)';
                 overlayCtx.shadowBlur = 25;
                 overlayCtx.shadowColor = '#d946ef'; 
                 overlayCtx.stroke();
 
-                // Layer 2: Purple/Blue Glow
                 overlayCtx.lineWidth = 14;
                 overlayCtx.strokeStyle = 'rgba(168, 85, 247, 0.6)';
                 overlayCtx.shadowBlur = 10;
                 overlayCtx.shadowColor = '#a855f7'; 
                 overlayCtx.stroke();
 
-                // Layer 3: Frosty White Core
                 overlayCtx.lineWidth = 6;
                 overlayCtx.strokeStyle = '#ffffff';
                 overlayCtx.shadowBlur = 0;
@@ -232,7 +202,6 @@
             if (currentTool === 'lasso' && lassoPoints.length > 10) {
                 processLassoArea();
             } else if (currentTool === 'lasso') {
-                // Clear if click was too short
                 overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
             }
         };
@@ -255,7 +224,6 @@
         }, {passive: false});
         window.addEventListener('touchend', stopDrawing);
 
-        // Google-style glowing bounding box animation
         function animateLoading(minX, minY, width, height) {
             let step = 0;
             
@@ -264,14 +232,11 @@
 
                 overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
-                // Darken screen (Scrim effect)
                 overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 overlayCtx.fillRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
-                // Clear the cutout around the selected drawing
                 overlayCtx.clearRect(minX, minY, width, height);
 
-                // Animated Gradient Brackets
                 const padding = 16;
                 const bx = minX - padding;
                 const by = minY - padding;
@@ -288,41 +253,35 @@
                 const cx = bx + bw/2;
                 const cy = by + bh/2;
                 
-                // Rotating conic gradient
                 const gradient = overlayCtx.createConicGradient(step, cx, cy);
-                gradient.addColorStop(0, '#a855f7');   // Purple
-                gradient.addColorStop(0.25, '#3b82f6'); // Blue
-                gradient.addColorStop(0.5, '#ec4899');  // Pink
-                gradient.addColorStop(0.75, '#3b82f6'); // Blue
-                gradient.addColorStop(1, '#a855f7');   // Purple
+                gradient.addColorStop(0, '#a855f7');   
+                gradient.addColorStop(0.25, '#3b82f6'); 
+                gradient.addColorStop(0.5, '#ec4899');  
+                gradient.addColorStop(0.75, '#3b82f6'); 
+                gradient.addColorStop(1, '#a855f7');   
 
                 overlayCtx.strokeStyle = gradient;
                 overlayCtx.shadowColor = '#e879f9';
                 overlayCtx.shadowBlur = 15;
 
-                // Draw Corner Brackets
-                // Top Left
                 overlayCtx.beginPath();
                 overlayCtx.moveTo(bx + bracketLength, by);
                 overlayCtx.lineTo(bx, by);
                 overlayCtx.lineTo(bx, by + bracketLength);
                 overlayCtx.stroke();
 
-                // Top Right
                 overlayCtx.beginPath();
                 overlayCtx.moveTo(bx + bw - bracketLength, by);
                 overlayCtx.lineTo(bx + bw, by);
                 overlayCtx.lineTo(bx + bw, by + bracketLength);
                 overlayCtx.stroke();
 
-                // Bottom Left
                 overlayCtx.beginPath();
                 overlayCtx.moveTo(bx + bracketLength, by + bh);
                 overlayCtx.lineTo(bx, by + bh);
                 overlayCtx.lineTo(bx, by + bh - bracketLength);
                 overlayCtx.stroke();
 
-                // Bottom Right
                 overlayCtx.beginPath();
                 overlayCtx.moveTo(bx + bw - bracketLength, by + bh);
                 overlayCtx.lineTo(bx + bw, by + bh);
@@ -335,7 +294,6 @@
         }
 
         async function processLassoArea() {
-            // Calculate bounding box of the drawn lasso
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
             lassoPoints.forEach(p => {
                 minX = Math.min(minX, p.x);
@@ -344,7 +302,6 @@
                 maxY = Math.max(maxY, p.y);
             });
 
-            // Add padding
             const pad = 20;
             minX = Math.max(0, minX - pad);
             minY = Math.max(0, minY - pad);
@@ -355,33 +312,21 @@
 
             if (width <= 0 || height <= 0) return;
 
-            // Extract the image data
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = width;
             tempCanvas.height = height;
             const tempCtx = tempCanvas.getContext('2d');
             
-            // Fill with dark background so white strokes are visible
             tempCtx.fillStyle = '#111827';
             tempCtx.fillRect(0, 0, width, height);
             tempCtx.drawImage(canvas, minX, minY, width, height, 0, 0, width, height);
 
-            // Start Animation
             isLoadingData = true;
             animateLoading(minX, minY, width, height);
             
-            // Check if API key exists
-            const userApiKey = localStorage.getItem('gemini_api_key') || apiKeyInput.value.trim();
-            
-            if (!userApiKey) {
-                isLoadingData = false;
-                cancelAnimationFrame(animationFrameId);
-                overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-                openSearchPanel(`### 🔑 API Key Required\n\nBecause this app is deployed on GitHub, you need to provide your own Gemini API key.\n\n1. Get a free key from [Google AI Studio](https://aistudio.google.com/)\n2. Paste it into the input box at the top of this panel.\n3. Try circling your drawing again!`);
-                return;
-            }
+            // Hardcoded API Key
+            const userApiKey = "AQ.Ab8RN6LyJQeY6IQtMxfIiV0qpezmQx3b_DhkRQ3czlF5UOcKcA";
 
-            // Pre-fill panel with loading text
             openSearchPanel(`
 <div class="flex flex-col items-center justify-center py-10 space-y-4">
     <div class="flex gap-2">
@@ -393,7 +338,6 @@
 </div>`);
 
             try {
-                // Get base64 string without the prefix
                 const base64Image = tempCanvas.toDataURL('image/png').split(',')[1];
                 
                 const prompt = `You are an expert educational tutor helping a student. Look at this whiteboard snippet and identify the core subject (a math equation, a scientific concept like a tree or cell, a historical term, etc.). 
@@ -430,7 +374,6 @@
 
                 const result = await response.json();
                 
-                // Stop animations
                 isLoadingData = false;
                 cancelAnimationFrame(animationFrameId);
                 overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
@@ -454,7 +397,6 @@
         }
 
         function openSearchPanel(markdownText) {
-            // Use marked.js to render Markdown securely
             searchResults.innerHTML = marked.parse(markdownText);
             searchPanel.classList.remove('translate-x-full');
         }
@@ -465,11 +407,9 @@
 
         document.getElementById('close-panel').addEventListener('click', () => {
             closeSearchPanel();
-            // Clear bounding box overlay if closed manually
             overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
         });
 
-        // Tool Selection UI
         const buttons = {
             'pen': document.getElementById('btn-pen'),
             'eraser': document.getElementById('btn-eraser'),
@@ -479,12 +419,10 @@
         function selectTool(tool) {
             currentTool = tool;
             
-            // Reset all buttons
             buttons['pen'].className = 'p-3 rounded-xl bg-transparent hover:bg-gray-700 transition text-gray-400 flex items-center justify-center';
             buttons['eraser'].className = 'p-3 rounded-xl bg-transparent hover:bg-gray-700 transition text-gray-400 flex items-center justify-center';
             buttons['lasso'].className = 'p-3 rounded-xl bg-transparent hover:bg-gray-700 transition text-gray-400 flex items-center justify-center group';
             
-            // Active state
             if (tool === 'pen') {
                 buttons['pen'].className = 'p-3 rounded-xl bg-gray-700 text-white shadow-inner flex items-center justify-center';
             } else if (tool === 'eraser') {
@@ -505,7 +443,6 @@
             closeSearchPanel();
         });
 
-        // Initialize with Pen
         selectTool('pen');
     </script>
 </body>
