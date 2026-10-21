@@ -324,8 +324,8 @@
             isLoadingData = true;
             animateLoading(minX, minY, width, height);
             
-            // Hardcoded API Key
-            const userApiKey = "AQ.Ab8RN6LyJQeY6IQtMxfIiV0qpezmQx3b_DhkRQ3czlF5UOcKcA";
+            // PASTE YOUR NEW KEY HERE (It MUST start with AIza)
+            const userApiKey = "PASTE_YOUR_AIza_KEY_HERE";
 
             openSearchPanel(`
 <div class="flex flex-col items-center justify-center py-10 space-y-4">
@@ -364,7 +364,8 @@
                     ],
                 };
 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${userApiKey}`;
+                // Changed from gemini-3-flash-preview to gemini-1.5-flash
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${userApiKey}`;
 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
