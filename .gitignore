@@ -4,4 +4,3 @@ Ignore the local environment file to prevent the API key from leaking to GitHub
 
 env.js
 .env
-.DS_Store
