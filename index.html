@@ -22,6 +22,7 @@
 </head>
 <body class="text-white">
 
+    <!-- Toolbar -->
     <div class="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 bg-gray-800/90 backdrop-blur-md p-2 rounded-2xl shadow-2xl flex gap-2 border border-gray-700">
         <button id="btn-pen" class="p-3 rounded-xl bg-gray-700 hover:bg-gray-600 transition text-white shadow-inner flex items-center justify-center" title="Pen">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -39,11 +40,13 @@
         </button>
     </div>
 
+    <!-- Canvases -->
     <div id="canvas-container">
         <canvas id="drawing-canvas"></canvas>
         <canvas id="overlay-canvas"></canvas>
     </div>
 
+    <!-- AI Results Side Panel -->
     <div id="search-panel" class="fixed top-0 right-0 h-full w-full md:w-96 bg-gray-900/95 backdrop-blur-xl border-l border-gray-700 shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
         <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800/50">
             <h2 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400 flex items-center gap-2">
@@ -308,7 +311,7 @@
 
             try {
                 const base64Image = tempCanvas.toDataURL('image/png').split(',')[1];
-                const prompt = `You are an expert educational tutor. Look at this whiteboard snippet. If it's a math problem, provide a step-by-step solution. If it's a drawing or concept, provide a brief educational summary. Use Markdown formatting.`;
+                const prompt = `Directly analyze the core subject in this drawing or text snippet (e.g., solve the math problem or explain the concept). Give a direct, punchy answer. Do NOT include generic introductory headers like "Educational Summary" or fluff phrases. Use Markdown formatting.`;
 
                 const payload = {
                     contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: "image/png", data: base64Image } }] }]
