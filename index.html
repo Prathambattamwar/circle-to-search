@@ -4,15 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smartboard - Circle to Search</title>
-    
-    <!-- External Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    
-    <!-- Load Environment Variables (API Key) -->
-    <!-- This loads locally. On GitHub, it will safely 404 because of .gitignore -->
-    <script src="env.js"></script>
-
     <style>
         body { margin: 0; overflow: hidden; background-color: #111827; touch-action: none; font-family: 'Inter', sans-serif; }
         #canvas-container { position: relative; width: 100vw; height: 100vh; }
@@ -20,7 +13,6 @@
         #drawing-canvas { z-index: 10; }
         #overlay-canvas { z-index: 20; pointer-events: none; }
         
-        /* Markdown Styling for AI Results */
         .prose h1, .prose h2, .prose h3 { color: #f3f4f6; margin-top: 1em; margin-bottom: 0.5em; font-weight: bold; }
         .prose p { color: #d1d5db; margin-bottom: 1em; line-height: 1.6; }
         .prose ul { list-style-type: disc; padding-left: 1.5em; color: #d1d5db; margin-bottom: 1em; }
@@ -50,9 +42,7 @@
 
     <!-- Canvases -->
     <div id="canvas-container">
-        <!-- Main drawing canvas -->
         <canvas id="drawing-canvas"></canvas>
-        <!-- Overlay for lasso animation and glowing box -->
         <canvas id="overlay-canvas"></canvas>
     </div>
 
@@ -68,6 +58,12 @@
             </button>
         </div>
 
+        <div class="p-4 border-b border-gray-700 bg-gray-800/30">
+            <label class="block text-xs font-medium text-gray-400 mb-1">Gemini API Key (Required for GitHub)</label>
+            <input type="password" id="api-key-input" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition" placeholder="Paste API Key (AQ...)">
+            <p class="text-[10px] text-gray-500 mt-1">Key is saved securely in your browser's local storage.</p>
+        </div>
+
         <div id="search-results" class="p-6 overflow-y-auto flex-1 prose prose-invert max-w-none">
             <!-- AI Results will be injected here as Markdown -->
         </div>
@@ -80,9 +76,19 @@
         const overlayCtx = overlayCanvas.getContext('2d');
         const searchPanel = document.getElementById('search-panel');
         const searchResults = document.getElementById('search-results');
+        const apiKeyInput = document.getElementById('api-key-input');
+
+        // Load saved key from storage
+        if (localStorage.getItem('gemini_api_key')) {
+            apiKeyInput.value = localStorage.getItem('gemini_api_key');
+        }
+
+        apiKeyInput.addEventListener('change', (e) => {
+            localStorage.setItem('gemini_api_key', e.target.value.trim());
+        });
 
         let isDrawing = false;
-        let currentTool = 'pen'; // 'pen', 'eraser', 'lasso'
+        let currentTool = 'pen'; 
         let lastX = 0;
         let lastY = 0;
         let lassoPoints = [];
@@ -92,8 +98,7 @@
         function resizeCanvas() {
             const w = window.innerWidth;
             const h = window.innerHeight;
-            
-            if (w === 0 || h === 0) return; // Prevent 0px crash
+            if (w === 0 || h === 0) return;
             
             let tempCanvas = null;
             if (canvas.width > 0 && canvas.height > 0) {
@@ -123,15 +128,9 @@
         function getPos(e) {
             const rect = canvas.getBoundingClientRect();
             if (e.touches && e.touches.length > 0) {
-                return {
-                    x: e.touches[0].clientX - rect.left,
-                    y: e.touches[0].clientY - rect.top
-                };
+                return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
             }
-            return {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
-            };
+            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
         }
 
         const startDrawing = (e) => {
@@ -178,22 +177,18 @@
 
                 overlayCtx.lineCap = 'round';
                 overlayCtx.lineJoin = 'round';
-
-                // Layer 1: Huge soft pink/purple shadow (Wide Aura)
                 overlayCtx.lineWidth = 24;
                 overlayCtx.strokeStyle = 'rgba(232, 121, 249, 0.25)';
                 overlayCtx.shadowBlur = 25;
                 overlayCtx.shadowColor = '#d946ef'; 
                 overlayCtx.stroke();
 
-                // Layer 2: Medium bright purple/blue glow
                 overlayCtx.lineWidth = 14;
                 overlayCtx.strokeStyle = 'rgba(168, 85, 247, 0.6)';
                 overlayCtx.shadowBlur = 10;
                 overlayCtx.shadowColor = '#a855f7'; 
                 overlayCtx.stroke();
 
-                // Layer 3: Thick White-ish Core (Frosty)
                 overlayCtx.lineWidth = 6;
                 overlayCtx.strokeStyle = '#ffffff';
                 overlayCtx.shadowBlur = 0;
@@ -215,38 +210,21 @@
             }
         };
 
-        // Event listeners for mouse and touch
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
         window.addEventListener('mouseup', stopDrawing);
 
-        canvas.addEventListener('touchstart', (e) => {
-            if(e.touches.length === 1) {
-                e.preventDefault();
-                startDrawing(e);
-            }
-        }, {passive: false});
-        canvas.addEventListener('touchmove', (e) => {
-            if(e.touches.length === 1) {
-                e.preventDefault();
-                draw(e);
-            }
-        }, {passive: false});
+        canvas.addEventListener('touchstart', (e) => { if(e.touches.length === 1) { e.preventDefault(); startDrawing(e); } }, {passive: false});
+        canvas.addEventListener('touchmove', (e) => { if(e.touches.length === 1) { e.preventDefault(); draw(e); } }, {passive: false});
         window.addEventListener('touchend', stopDrawing);
 
         function animateLoading(minX, minY, width, height) {
             let step = 0;
-            
             function render() {
                 if(!isLoadingData) return;
-
                 overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-
-                // Darken screen (Scrim effect)
                 overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 overlayCtx.fillRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-
-                // Clear the cutout around the selected drawing
                 overlayCtx.clearRect(minX, minY, width, height);
 
                 const padding = 16;
@@ -256,16 +234,13 @@
                 const bh = height + padding * 2;
 
                 step += 0.05;
-
                 const bracketLength = Math.min(40, bw / 3);
                 overlayCtx.lineWidth = 6;
                 overlayCtx.lineCap = 'round';
                 overlayCtx.lineJoin = 'round';
-
                 const cx = bx + bw/2;
                 const cy = by + bh/2;
                 
-                // Animated Conic Gradient for the brackets
                 const gradient = overlayCtx.createConicGradient(step, cx, cy);
                 gradient.addColorStop(0, '#a855f7');   
                 gradient.addColorStop(0.25, '#3b82f6'); 
@@ -277,22 +252,11 @@
                 overlayCtx.shadowColor = '#e879f9';
                 overlayCtx.shadowBlur = 15;
 
-                // Draw Corner Brackets
-                overlayCtx.beginPath();
-                overlayCtx.moveTo(bx + bracketLength, by); overlayCtx.lineTo(bx, by); overlayCtx.lineTo(bx, by + bracketLength);
-                overlayCtx.stroke();
-
-                overlayCtx.beginPath();
-                overlayCtx.moveTo(bx + bw - bracketLength, by); overlayCtx.lineTo(bx + bw, by); overlayCtx.lineTo(bx + bw, by + bracketLength);
-                overlayCtx.stroke();
-
-                overlayCtx.beginPath();
-                overlayCtx.moveTo(bx + bracketLength, by + bh); overlayCtx.lineTo(bx, by + bh); overlayCtx.lineTo(bx, by + bh - bracketLength);
-                overlayCtx.stroke();
-
-                overlayCtx.beginPath();
-                overlayCtx.moveTo(bx + bw - bracketLength, by + bh); overlayCtx.lineTo(bx + bw, by + bh); overlayCtx.lineTo(bx + bw, by + bh - bracketLength);
-                overlayCtx.stroke();
+                // Brackets
+                overlayCtx.beginPath(); overlayCtx.moveTo(bx + bracketLength, by); overlayCtx.lineTo(bx, by); overlayCtx.lineTo(bx, by + bracketLength); overlayCtx.stroke();
+                overlayCtx.beginPath(); overlayCtx.moveTo(bx + bw - bracketLength, by); overlayCtx.lineTo(bx + bw, by); overlayCtx.lineTo(bx + bw, by + bracketLength); overlayCtx.stroke();
+                overlayCtx.beginPath(); overlayCtx.moveTo(bx + bracketLength, by + bh); overlayCtx.lineTo(bx, by + bh); overlayCtx.lineTo(bx, by + bh - bracketLength); overlayCtx.stroke();
+                overlayCtx.beginPath(); overlayCtx.moveTo(bx + bw - bracketLength, by + bh); overlayCtx.lineTo(bx + bw, by + bh); overlayCtx.lineTo(bx + bw, by + bh - bracketLength); overlayCtx.stroke();
 
                 animationFrameId = requestAnimationFrame(render);
             }
@@ -300,59 +264,39 @@
         }
 
         async function processLassoArea() {
-            // Find bounds
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
             lassoPoints.forEach(p => {
-                minX = Math.min(minX, p.x);
-                minY = Math.min(minY, p.y);
-                maxX = Math.max(maxX, p.x);
-                maxY = Math.max(maxY, p.y);
+                minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
+                maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y);
             });
 
             const pad = 20;
-            minX = Math.max(0, minX - pad);
-            minY = Math.max(0, minY - pad);
-            maxX = Math.min(canvas.width, maxX + pad);
-            maxY = Math.min(canvas.height, maxY + pad);
-            const width = maxX - minX;
-            const height = maxY - minY;
+            minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+            maxX = Math.min(canvas.width, maxX + pad); maxY = Math.min(canvas.height, maxY + pad);
+            const width = maxX - minX; const height = maxY - minY;
 
             if (width <= 0 || height <= 0) return;
 
-            // Crop image
             const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = width;
-            tempCanvas.height = height;
+            tempCanvas.width = width; tempCanvas.height = height;
             const tempCtx = tempCanvas.getContext('2d');
-            
             tempCtx.fillStyle = '#111827';
             tempCtx.fillRect(0, 0, width, height);
             tempCtx.drawImage(canvas, minX, minY, width, height, 0, 0, width, height);
 
             isLoadingData = true;
             animateLoading(minX, minY, width, height);
-            
-            // --- GRAB THE API KEY FROM env.js ---
-            let userApiKey = "";
-            if (typeof window !== 'undefined' && window.ENV && window.ENV.GEMINI_API_KEY) {
-                userApiKey = window.ENV.GEMINI_API_KEY;
-            }
 
-            // Check if key is completely missing (e.g. running live on GitHub Pages)
-            if (!userApiKey) {
+            const userKey = apiKeyInput.value.trim();
+            if (!userKey) {
                 isLoadingData = false;
                 cancelAnimationFrame(animationFrameId);
                 overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-                openSearchPanel(`### ⚠️ API Key Missing
-                
-Because this app is running on GitHub Pages (or env.js was not found), the API key is not present. 
-
-**For developers:** If you want this to work on a live static site, you must either provide an API key fallback, or add a text input for users to supply their own key.`);
+                openSearchPanel(`### 🔑 API Key Required\n\nPlease paste your Gemini API key in the input box above to use the Smart Circle feature on GitHub Pages.`);
                 return;
             }
-
-            const modelName = "gemini-1.5-flash"; // Highly stable model
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${userApiKey}`;
+            
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${userKey}`;
 
             openSearchPanel(`
 <div class="flex flex-col items-center justify-center py-10 space-y-4">
@@ -361,34 +305,15 @@ Because this app is running on GitHub Pages (or env.js was not found), the API k
         <div class="w-3 h-3 bg-pink-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
         <div class="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
     </div>
-    <p class="text-gray-400 animate-pulse">Analyzing image with Gemini Vision...</p>
+    <p class="text-gray-400 animate-pulse">Analyzing with Gemini...</p>
 </div>`);
 
             try {
                 const base64Image = tempCanvas.toDataURL('image/png').split(',')[1];
-                
-                const prompt = `You are an expert educational tutor helping a student. Look at this whiteboard snippet and identify the core subject (a math equation, a scientific concept like a tree or cell, a historical term, etc.). 
-                CRITICAL: Do NOT analyze the artistic style, line thickness, or how it was drawn. 
-                - If it's a math problem, provide a clear step-by-step solution.
-                - If it's a drawing of a real-world concept (e.g., a tree, a heart, a planet), provide a brief educational summary, key scientific/historical facts, and why it is important.
-                - If it's handwritten text, define and explain the concept clearly.
-                Keep the tone encouraging, concise, and perfectly tailored for a student's notes. Use Markdown formatting.`;
+                const prompt = `You are an expert educational tutor. Look at this whiteboard snippet. If it's a math problem, provide a step-by-step solution. If it's a drawing or concept, provide a brief educational summary. Use Markdown formatting.`;
 
                 const payload = {
-                    contents: [
-                        {
-                            role: "user",
-                            parts: [
-                                { text: prompt },
-                                {
-                                    inlineData: {
-                                        mimeType: "image/png",
-                                        data: base64Image
-                                    }
-                                }
-                            ]
-                        }
-                    ]
+                    contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: "image/png", data: base64Image } }] }]
                 };
 
                 const response = await fetch(apiUrl, {
@@ -403,21 +328,17 @@ Because this app is running on GitHub Pages (or env.js was not found), the API k
                 cancelAnimationFrame(animationFrameId);
                 overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
-                if (response.ok && result.candidates && result.candidates.length > 0) {
-                    const textResponse = result.candidates[0].content.parts[0].text;
-                    openSearchPanel(textResponse);
-                } else if (result.error) {
-                    throw new Error(result.error.message || "Unknown API error");
+                if (response.ok && result.candidates) {
+                    openSearchPanel(result.candidates[0].content.parts[0].text);
                 } else {
-                    throw new Error("No readable content found in the response.");
+                    throw new Error(result.error?.message || "Invalid API Key or API Error");
                 }
 
             } catch (err) {
-                console.error("AI Error:", err);
                 isLoadingData = false;
                 cancelAnimationFrame(animationFrameId);
                 overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-                openSearchPanel(`### ⚠️ Analysis Failed\n\n**Error Details:**\n\`${err.message}\`\n\nPlease try drawing and circling again.`);
+                openSearchPanel(`### ⚠️ Analysis Failed\n\n**Error Details:**\n\`${err.message}\`\n\nMake sure your API key is valid.`);
             }
         }
 
@@ -443,18 +364,13 @@ Because this app is running on GitHub Pages (or env.js was not found), the API k
 
         function selectTool(tool) {
             currentTool = tool;
-            
             buttons['pen'].className = 'p-3 rounded-xl bg-transparent hover:bg-gray-700 transition text-gray-400 flex items-center justify-center';
             buttons['eraser'].className = 'p-3 rounded-xl bg-transparent hover:bg-gray-700 transition text-gray-400 flex items-center justify-center';
             buttons['lasso'].className = 'p-3 rounded-xl bg-transparent hover:bg-gray-700 transition text-gray-400 flex items-center justify-center group';
             
-            if (tool === 'pen') {
-                buttons['pen'].className = 'p-3 rounded-xl bg-gray-700 text-white shadow-inner flex items-center justify-center';
-            } else if (tool === 'eraser') {
-                buttons['eraser'].className = 'p-3 rounded-xl bg-gray-700 text-white shadow-inner flex items-center justify-center';
-            } else if (tool === 'lasso') {
-                buttons['lasso'].className = 'p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg flex items-center justify-center group';
-            }
+            if (tool === 'pen') buttons['pen'].className = 'p-3 rounded-xl bg-gray-700 text-white shadow-inner flex items-center justify-center';
+            else if (tool === 'eraser') buttons['eraser'].className = 'p-3 rounded-xl bg-gray-700 text-white shadow-inner flex items-center justify-center';
+            else if (tool === 'lasso') buttons['lasso'].className = 'p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg flex items-center justify-center group';
         }
 
         buttons['pen'].addEventListener('click', () => selectTool('pen'));
